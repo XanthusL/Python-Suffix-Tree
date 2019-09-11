@@ -35,10 +35,15 @@ class Edge(object):
         self.last_char_index = last_char_index
         self.source_node_index = source_node_index
         self.dest_node_index = dest_node_index
+        self.count_repeated = 1
 
     @property
     def length(self):
         return self.last_char_index - self.first_char_index
+
+    @property
+    def count(self):
+        return self.count_repeated
 
     def __repr__(self):
         return 'Edge(%d, %d, %d, %d)' % (self.source_node_index,
@@ -126,9 +131,11 @@ class SuffixTree(object):
         while True:
             parent_node = self.active.source_node_index
             if self.active.explicit():
-                if (self.active.source_node_index,
-                        self.string[last_char_index]) in self.edges:
+                edge = self.edges.get((self.active.source_node_index,
+                        self.string[last_char_index]))
+                if edge is not None:
                     # prefix is already in tree
+                    edge.count_repeated += 1
                     break
             else:
                 e = self.edges[self.active.source_node_index,
@@ -136,6 +143,7 @@ class SuffixTree(object):
                 if self.string[e.first_char_index +
                                self.active.length + 1] == self.string[last_char_index]:
                     # prefix is already in tree
+                    e.count_repeated += 1
                     break
                 parent_node = self._split_edge(e, self.active)
 
@@ -217,3 +225,8 @@ class SuffixTree(object):
 
     def has_substring(self, substring):
         return self.find_substring(substring) != -1
+
+    def walk(self):
+        for (node_idx, sub) in self.edges:
+            e = self.edges.get((node_idx, sub))
+            yield (e.first_char_index, e.length, e.count)
